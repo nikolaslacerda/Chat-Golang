@@ -9,7 +9,8 @@ import (
 )
 
 type Channel struct {
-	mensagem string
+	EnviadoPor string
+	Mensagem   string
 }
 
 var channels []Channel
@@ -49,7 +50,7 @@ func main() {
 					fmt.Print("Enviar msg: ")
 					if scanner.Scan() {
 						msg = scanner.Text()
-						channels = append(channels, Channel{mensagem: msg})
+						channels = append(channels, Channel{EnviadoPor: addresses[0], Mensagem: msg})
 					}
 					req := BEB.BestEffortBroadcast_Req_Message{
 						Addresses: addresses[1:],
@@ -67,7 +68,7 @@ func main() {
 	go func() {
 		for {
 			in := <-beb.Ind
-			fmt.Printf("Message from %v: %v\n", in.From, in.Message)
+			fmt.Printf("Mensagem de %v: %v\n", in.From, in.Message)
 		}
 	}()
 
