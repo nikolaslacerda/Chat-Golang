@@ -8,11 +8,13 @@
 
 package main
 
-import "fmt"
-import "os"
-import "bufio"
+import (
+	"bufio"
+	"fmt"
+	"os"
 
-import BEB "./BEB"
+	BEB "./BEB"
+)
 
 func main() {
 
@@ -35,6 +37,55 @@ func main() {
 
 		scanner := bufio.NewScanner(os.Stdin)
 		var msg string
+		var op string
+
+		for {
+			fmt.Println("----------------------")
+			fmt.Println("Digite 1 para enviar msg")
+			fmt.Println("Digite 2 para rever as msgs")
+			fmt.Print("-> ")
+			if scanner.Scan() {
+				op = scanner.Text()
+				switch op {
+				case "1":
+					fmt.Print("Enviar msg: ")
+					if scanner.Scan() {
+						msg = scanner.Text()
+					}
+					req := BEB.BestEffortBroadcast_Req_Message{
+						Addresses: addresses[1:],
+						Message:   msg}
+					beb.Req <- req
+				case "2":
+
+				}
+			}
+
+		}
+	}()
+
+	// receptor de broadcasts
+	go func() {
+		for {
+			in := <-beb.Ind
+			fmt.Printf("Message from %v: %v\n", in.From, in.Message)
+		}
+	}()
+
+	blq := make(chan int)
+	<-blq
+}
+
+/*
+go run chat.go 127.0.0.1:5001  127.0.0.1:6001
+go run chat.go 127.0.0.1:6001  127.0.0.1:5001
+*/
+
+/*
+go func() {
+
+		scanner := bufio.NewScanner(os.Stdin)
+		var msg string
 
 		for {
 			if scanner.Scan() {
@@ -46,25 +97,5 @@ func main() {
 			beb.Req <- req
 		}
 	}()
-
-	// receptor de broadcasts
-	go func() {
-		for {
-
-			in := <-beb.Ind
-			fmt.Printf("Message from %v: %v\n", in.From, in.Message)
-
-		}
-	}()
-
-	blq := make(chan int)
-	<-blq
-}
-
-/*
-
-go run chat.go 127.0.0.1:5001  127.0.0.1:6001
-
-go run chat.go 127.0.0.1:6001  127.0.0.1:5001
 
 */
