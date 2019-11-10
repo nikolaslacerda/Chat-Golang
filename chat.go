@@ -1,11 +1,3 @@
-// Construido como parte da disciplina de Sistemas Distribuidos
-// Semestre 2018/2  -  PUCRS - Escola Politecnica
-// Estudantes:  Andre Antonitsch e Rafael Copstein
-// Professor: Fernando Dotti  (www.inf.pucrs.br/~fldotti)
-// Algoritmo baseado no livro:
-// Introduction to Reliable and Secure Distributed Programming
-// Christian Cachin, Rachid Gerraoui, Luis Rodrigues
-
 package main
 
 import (
@@ -16,21 +8,31 @@ import (
 	BEB "./BEB"
 )
 
-func main() {
+type Channel struct {
+	mensagem string
+}
 
+var channels []Channel
+
+func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Please specify at least one address:port!")
+		fmt.Println("Especifique pelo menos um endereço: porta!")
 		return
 	}
 
 	addresses := os.Args[1:]
-	fmt.Println(addresses)
+	fmt.Println("Enderecos:", addresses)
 
 	beb := BEB.BestEffortBroadcast_Module{
 		Req: make(chan BEB.BestEffortBroadcast_Req_Message),
 		Ind: make(chan BEB.BestEffortBroadcast_Ind_Message)}
 
 	beb.Init(addresses[0])
+
+	fmt.Println("-------------COMANDOS--------------")
+	fmt.Println("1)Enviar mensagem")
+	fmt.Println("2)Visualizar histórico de mensagens")
+	fmt.Println("-----------------------------------")
 
 	// enviador de broadcasts
 	go func() {
@@ -40,10 +42,6 @@ func main() {
 		var op string
 
 		for {
-			fmt.Println("----------------------")
-			fmt.Println("Digite 1 para enviar msg")
-			fmt.Println("Digite 2 para rever as msgs")
-			fmt.Print("-> ")
 			if scanner.Scan() {
 				op = scanner.Text()
 				switch op {
@@ -51,13 +49,14 @@ func main() {
 					fmt.Print("Enviar msg: ")
 					if scanner.Scan() {
 						msg = scanner.Text()
+						channels = append(channels, Channel{mensagem: msg})
 					}
 					req := BEB.BestEffortBroadcast_Req_Message{
 						Addresses: addresses[1:],
 						Message:   msg}
 					beb.Req <- req
 				case "2":
-
+					fmt.Printf("%+v\n", channels)
 				}
 			}
 
@@ -79,23 +78,4 @@ func main() {
 /*
 go run chat.go 127.0.0.1:5001  127.0.0.1:6001
 go run chat.go 127.0.0.1:6001  127.0.0.1:5001
-*/
-
-/*
-go func() {
-
-		scanner := bufio.NewScanner(os.Stdin)
-		var msg string
-
-		for {
-			if scanner.Scan() {
-				msg = scanner.Text()
-			}
-			req := BEB.BestEffortBroadcast_Req_Message{
-				Addresses: addresses[1:],
-				Message:   msg}
-			beb.Req <- req
-		}
-	}()
-
 */
