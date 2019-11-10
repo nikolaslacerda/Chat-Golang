@@ -69,6 +69,7 @@ func main() {
 		for {
 			in := <-beb.Ind
 			fmt.Printf("Mensagem de %v: %v\n", in.From, in.Message)
+			channels = append(channels, Channel{EnviadoPor: in.From, Mensagem: in.Message})
 		}
 	}()
 
@@ -77,6 +78,6 @@ func main() {
 }
 
 /*
-go run chat.go 127.0.0.1:5001  127.0.0.1:6001
-go run chat.go 127.0.0.1:6001  127.0.0.1:5001
+go run chat.go 127.0.0.1:5001  127.0.0.1:5002
+go run chat.go 127.0.0.1:5002  127.0.0.1:5001
 */
