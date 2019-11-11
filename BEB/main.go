@@ -8,7 +8,9 @@
 
 package BEB
 
-import "fmt"
+import (
+	"fmt"
+	)
 
 import PP2PLink "../Link"
 
@@ -22,9 +24,11 @@ type BestEffortBroadcast_Ind_Message struct {
 	Message string
 }
 
+
 type BestEffortBroadcast_Module struct {
 	Ind      chan BestEffortBroadcast_Ind_Message
 	Req      chan BestEffortBroadcast_Req_Message
+	NewUser  chan string
 	Pp2plink PP2PLink.PP2PLink
 }
 
@@ -70,7 +74,9 @@ func (module BestEffortBroadcast_Module) Deliver(message BestEffortBroadcast_Ind
 	fmt.Println("Received '" + message.Message + "' from " + message.From)
 	module.Ind <- message
 	fmt.Println("# End BEB Received")
-
+	
+	module.NewUser <- message.From
+	
 }
 
 func BEB2PP2PLink(message BestEffortBroadcast_Req_Message) PP2PLink.PP2PLink_Req_Message {

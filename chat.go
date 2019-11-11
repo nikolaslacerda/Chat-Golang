@@ -26,7 +26,8 @@ func main() {
 
 	beb := BEB.BestEffortBroadcast_Module{
 		Req: make(chan BEB.BestEffortBroadcast_Req_Message),
-		Ind: make(chan BEB.BestEffortBroadcast_Ind_Message)}
+		Ind: make(chan BEB.BestEffortBroadcast_Ind_Message),
+		NewUser: make(chan string)}
 
 	beb.Init(addresses[0])
 
@@ -34,6 +35,7 @@ func main() {
 	fmt.Println("1)Enviar mensagem")
 	fmt.Println("2)Visualizar histórico de mensagens")
 	fmt.Println("3)Pedir para entrar em um chat")
+	fmt.Println("4)Mostrar participantes")
 	fmt.Println("-----------------------------------")
 
 	// enviador de broadcasts
@@ -73,6 +75,8 @@ func main() {
 						Addresses: ipL,
 						Message:   msg}
 					beb.Req <- req
+				case "4":
+					fmt.Println("Participantes:", addresses)
 				}
 			}
 
@@ -85,6 +89,8 @@ func main() {
 			in := <-beb.Ind
 			fmt.Printf("Mensagem de %v: %v\n", in.From, in.Message)
 			channels = append(channels, Channel{EnviadoPor: in.From, Mensagem: in.Message})
+			newU := <-beb.NewUser
+			addresses = append(addresses, newU)
 		}
 	}()
 
