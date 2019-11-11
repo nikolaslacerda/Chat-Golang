@@ -27,7 +27,8 @@ func main() {
 	beb := BEB.BestEffortBroadcast_Module{
 		Req: make(chan BEB.BestEffortBroadcast_Req_Message),
 		Ind: make(chan BEB.BestEffortBroadcast_Ind_Message),
-		NewUser: make(chan string)}
+		NewUser: make(chan string), 
+		RefreshList: make(chan string)}
 
 	beb.Init(addresses[0])
 
@@ -95,6 +96,21 @@ func main() {
 	go func() {
 		for {
 			newU := <-beb.NewUser
+			req := BEB.BestEffortBroadcast_Req_Message{
+				Addresses: addresses[1:],
+				Message:   "Atualizem ai!",
+				Ip: newU}
+
+			beb.Req <- req
+
+			addresses = append(addresses, newU)
+
+		}
+	}()
+
+	go func() {
+		for {
+			newU := <-beb.RefreshList
 			addresses = append(addresses, newU)
 		}
 	}()

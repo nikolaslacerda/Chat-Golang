@@ -17,10 +17,12 @@ import PP2PLink "../Link"
 type BestEffortBroadcast_Req_Message struct {
 	Addresses []string
 	Message   string
+	Ip    string
 }
 
 type BestEffortBroadcast_Ind_Message struct {
 	From    string
+	Ip    string
 	Message string
 }
 
@@ -29,6 +31,7 @@ type BestEffortBroadcast_Module struct {
 	Ind      chan BestEffortBroadcast_Ind_Message
 	Req      chan BestEffortBroadcast_Req_Message
 	NewUser  chan string
+	RefreshList chan string
 	Pp2plink PP2PLink.PP2PLink
 }
 
@@ -74,9 +77,11 @@ func (module BestEffortBroadcast_Module) Deliver(message BestEffortBroadcast_Ind
 	//fmt.Println("Received '" + message.Message + "' from " + message.From)
 	module.Ind <- message
 	//fmt.Println("# End BEB Received")
-	fmt.Println(message.Message)
-	if(message.Message == "Entrou no chat!"){
+	if (message.Message == "Entrou no chat!"){
 		module.NewUser <- message.From
+	} else if message.Message == "Atualizem ai!" {
+		fmt.Println(message.Ip)
+		module.RefreshList <- message.Ip
 	}
 	
 }
