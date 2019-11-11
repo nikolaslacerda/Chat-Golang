@@ -71,11 +71,13 @@ func (module BestEffortBroadcast_Module) Broadcast(message BestEffortBroadcast_R
 
 func (module BestEffortBroadcast_Module) Deliver(message BestEffortBroadcast_Ind_Message) {
 
-	fmt.Println("Received '" + message.Message + "' from " + message.From)
+	//fmt.Println("Received '" + message.Message + "' from " + message.From)
 	module.Ind <- message
-	fmt.Println("# End BEB Received")
-	
-	module.NewUser <- message.From
+	//fmt.Println("# End BEB Received")
+	fmt.Println(message.Message)
+	if(message.Message == "Entrou no chat!"){
+		module.NewUser <- message.From
+	}
 	
 }
 

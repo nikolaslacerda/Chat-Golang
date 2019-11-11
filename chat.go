@@ -69,7 +69,7 @@ func main() {
 						ip = scanner.Text()
 						ipL = append(ipL, ip)
 						// msg = addresses[0] + " Gostaria de participar do chat"
-						msg = "Olá, eu gostaria de participar do chat"
+						msg = "Entrou no chat!"
 					}
 					req := BEB.BestEffortBroadcast_Req_Message{
 						Addresses: ipL,
@@ -89,6 +89,11 @@ func main() {
 			in := <-beb.Ind
 			fmt.Printf("Mensagem de %v: %v\n", in.From, in.Message)
 			channels = append(channels, Channel{EnviadoPor: in.From, Mensagem: in.Message})
+		}
+	}()
+
+	go func() {
+		for {
 			newU := <-beb.NewUser
 			addresses = append(addresses, newU)
 		}
