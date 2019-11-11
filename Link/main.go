@@ -22,11 +22,13 @@ import "strings"
 type PP2PLink_Req_Message struct {
 	To      string
 	Message string
+	Ip string
 }
 
 type PP2PLink_Ind_Message struct {
 	From    string
 	Message string
+	Ip string
 }
 
 type PP2PLink struct {
@@ -80,7 +82,7 @@ func (module PP2PLink) Start(address string) {
 					copy(content, buf)
 
 					if !strings.Contains(string(content), "@$@"){
-						fmt.Println("WHY")
+						fmt.Println("Chat On!")
 					}
 
 					for _,actual := range strings.Split(string(content), "@$@"){
@@ -88,15 +90,17 @@ func (module PP2PLink) Start(address string) {
 							continue
 						}
 
-						// fmt.Println("!!!!!!!!"+string(content))
+						fmt.Println("!!!!!!!!"+string(actual))
 						// fmt.Println("????????"+actual)
 
-						msg := PP2PLink_Ind_Message{
+						msg := PP2PLink_Ind_Message {
 							From:    conn.RemoteAddr().String(),
-							Message: string(actual)}
+							Message: string(actual),
+							Ip: "PP2PLink_Req_Message.Ip"}
 
+						fmt.Println(msg)
 						module.Ind <- msg
-						// fmt.Println(msg)
+						//fmt.Println(msg)
 					}
 				}
 			}()
@@ -106,6 +110,7 @@ func (module PP2PLink) Start(address string) {
 	go func() {
 		for {
 			message := <-module.Req
+			fmt.Printf("asdddddddddddddddddddddddd")
 			module.Send(message)
 		}
 	}()
@@ -128,7 +133,8 @@ func (module PP2PLink) Send(message PP2PLink_Req_Message) {
 			return
 		}
 		module.Cache[message.To] = conn
+		
 	}
-
-	fmt.Fprintf(conn, message.Message)
+	fmt.Printf("LOL" + message.Ip)
+	fmt.Fprintf(conn, message.Message, message.Ip)
 }

@@ -22,8 +22,8 @@ type BestEffortBroadcast_Req_Message struct {
 
 type BestEffortBroadcast_Ind_Message struct {
 	From    string
-	Ip    string
 	Message string
+	Ip    string
 }
 
 
@@ -63,9 +63,14 @@ func (module BestEffortBroadcast_Module) Start() {
 
 func (module BestEffortBroadcast_Module) Broadcast(message BestEffortBroadcast_Req_Message) {
 
+	//Até aqui OK
+	fmt.Println(message)
+
 	for i := 0; i < len(message.Addresses); i++ {
 		msg := BEB2PP2PLink(message)
 		msg.To = message.Addresses[i]
+		msg.Ip = message.Ip
+		//OK
 		module.Pp2plink.Req <- msg
 		fmt.Println("Sent to " + message.Addresses[i])
 	}
@@ -74,13 +79,14 @@ func (module BestEffortBroadcast_Module) Broadcast(message BestEffortBroadcast_R
 
 func (module BestEffortBroadcast_Module) Deliver(message BestEffortBroadcast_Ind_Message) {
 
-	//fmt.Println("Received '" + message.Message + "' from " + message.From)
+	fmt.Println("Received '" + message.Message + "' from " + message.From + "' Ip" + message.Ip)
 	module.Ind <- message
 	//fmt.Println("# End BEB Received")
 	if (message.Message == "Entrou no chat!"){
 		module.NewUser <- message.From
 	} else if message.Message == "Atualizem ai!" {
-		fmt.Println(message.Ip)
+		fmt.Println("Velho" + message.Ip)
+		fmt.Println("Velho" + message.From)
 		module.RefreshList <- message.Ip
 	}
 	
@@ -90,7 +96,8 @@ func BEB2PP2PLink(message BestEffortBroadcast_Req_Message) PP2PLink.PP2PLink_Req
 
 	return PP2PLink.PP2PLink_Req_Message{
 		To:      message.Addresses[0],
-		Message: message.Message}
+		Message: message.Message,
+		Ip: message.Ip}
 
 }
 
@@ -98,6 +105,7 @@ func PP2PLink2BEB(message PP2PLink.PP2PLink_Ind_Message) BestEffortBroadcast_Ind
 
 	return BestEffortBroadcast_Ind_Message{
 		From:    message.From,
-		Message: message.Message}
+		Message: message.Message,
+		Ip: message.Ip}
 
 }

@@ -11,6 +11,7 @@ import (
 type Channel struct {
 	EnviadoPor string
 	Mensagem   string
+	Ip string
 }
 
 var channels []Channel
@@ -45,6 +46,7 @@ func main() {
 		scanner := bufio.NewScanner(os.Stdin)
 		var msg string
 		var ip string
+		var ipp string
 		var ipL []string
 		var op string
 
@@ -56,11 +58,13 @@ func main() {
 					fmt.Print("Enviar msg: ")
 					if scanner.Scan() {
 						msg = scanner.Text()
-						channels = append(channels, Channel{EnviadoPor: addresses[0], Mensagem: msg})
+						ipp = "consegui!"
+						channels = append(channels, Channel{EnviadoPor: addresses[0], Mensagem: msg, Ip: ipp})
 					}
 					req := BEB.BestEffortBroadcast_Req_Message{
 						Addresses: addresses[1:],
-						Message:   msg}
+						Message:   msg,
+						Ip: ipp}
 					beb.Req <- req
 				case "2":
 					fmt.Printf("%+v\n", channels)
@@ -74,8 +78,10 @@ func main() {
 					}
 					req := BEB.BestEffortBroadcast_Req_Message{
 						Addresses: ipL,
-						Message:   msg}
+						Message:   msg,
+						Ip: "no"}
 					beb.Req <- req
+
 				case "4":
 					fmt.Println("Participantes:", addresses)
 				}
@@ -88,18 +94,19 @@ func main() {
 	go func() {
 		for {
 			in := <-beb.Ind
-			fmt.Printf("Mensagem de %v: %v\n", in.From, in.Message)
-			channels = append(channels, Channel{EnviadoPor: in.From, Mensagem: in.Message})
+			fmt.Printf("Mensagem de %v: %v, %v\n", in.From, in.Message, in.Ip)
+			channels = append(channels, Channel{EnviadoPor: in.From, Mensagem: in.Message, Ip: in.Ip})
 		}
 	}()
 
 	go func() {
 		for {
 			newU := <-beb.NewUser
+			fmt.Println("NOVO:" + newU)
 			req := BEB.BestEffortBroadcast_Req_Message{
 				Addresses: addresses[1:],
 				Message:   "Atualizem ai!",
-				Ip: newU}
+				Ip: "fsdfsdfsdfsdf"}
 
 			beb.Req <- req
 
