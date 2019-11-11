@@ -33,6 +33,7 @@ func main() {
 	fmt.Println("-------------COMANDOS--------------")
 	fmt.Println("1)Enviar mensagem")
 	fmt.Println("2)Visualizar histórico de mensagens")
+	fmt.Println("3)Pedir para entrar em um chat")
 	fmt.Println("-----------------------------------")
 
 	// enviador de broadcasts
@@ -40,6 +41,8 @@ func main() {
 
 		scanner := bufio.NewScanner(os.Stdin)
 		var msg string
+		var ip string
+		var ipL []string
 		var op string
 
 		for {
@@ -58,6 +61,18 @@ func main() {
 					beb.Req <- req
 				case "2":
 					fmt.Printf("%+v\n", channels)
+				case "3":
+					fmt.Printf("IP: ")
+					if scanner.Scan() {
+						ip = scanner.Text()
+						ipL = append(ipL, ip)
+						// msg = addresses[0] + " Gostaria de participar do chat"
+						msg = "Olá, eu gostaria de participar do chat"
+					}
+					req := BEB.BestEffortBroadcast_Req_Message{
+						Addresses: ipL,
+						Message:   msg}
+					beb.Req <- req
 				}
 			}
 
