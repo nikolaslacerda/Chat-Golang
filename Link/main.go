@@ -1,18 +1,3 @@
-/*
-  Construido como parte da disciplina de Sistemas Distribuidos
-  Semestre 2018/2  -  PUCRS - Escola Politecnica
-  Estudantes:  Andre Antonitsch e Rafael Copstein
-  Professor: Fernando Dotti  (www.inf.pucrs.br/~fldotti)
-  Algoritmo baseado no livro:
-  Introduction to Reliable and Secure Distributed Programming
-  Christian Cachin, Rachid Gerraoui, Luis Rodrigues
-
-  Melhorado como parte da disciplina de Sistemas Distribuídos
-  Reaproveita conexões TCP já abertas
-  Semestre 2019/1
-  Vinicius Sesti e Gabriel Waengertner
-*/
-
 package PP2PLink
 
 import "fmt"
@@ -20,15 +5,15 @@ import "net"
 import "strings"
 
 type PP2PLink_Req_Message struct {
-	To      string
-	Message string
-	Ip string
+	To          string
+	Message 	string
+	IpCorreto	string
 }
 
 type PP2PLink_Ind_Message struct {
 	From    string
 	Message string
-	Ip string
+	IpCorreto string
 }
 
 type PP2PLink struct {
@@ -38,69 +23,58 @@ type PP2PLink struct {
 	Cache map[string]net.Conn
 }
 
+// Inicia
 func (module PP2PLink) Init(address string) {
-
-	// fmt.Println("Init PP2PLink!")
-	if module.Run {
-		return
+	if module.Run { return 
 	}
-
 	module.Cache = make(map[string]net.Conn)
 	module.Run = true
 	module.Start(address)
 }
 
 func (module PP2PLink) Start(address string) {
-
 	go func() {
-
 		listen, _ := net.Listen("tcp4", address)
 		for {
-
 			// aceita repetidamente tentativas novas de conexao
-
 			conn, err := listen.Accept()
 			// fmt.Println(err)
 			if err != nil {
 				continue
 			}
-
-
 			go func() {
-
 				// quando aceita, repetidamente recebe mensagens na conexao TCP (sem fechar)
 				// e passa para cima
 				for {
-					buf := make([]byte, 1024)
-					Len, err := conn.Read(buf)
-
+					
+					buf := make([]byte, 1014)
+					Len, err := conn.Read(buf) // Leio os dados da conexão
 					if err != nil {
 						continue
 					}
 
 					content := make([]byte, Len)
+					
 					copy(content, buf)
 
 					if !strings.Contains(string(content), "@$@"){
-						fmt.Println("Chat On!")
+						//fmt.Println("WHY")
 					}
-
+					
 					for _,actual := range strings.Split(string(content), "@$@"){
 						if len(actual) == 0 {
 							continue
 						}
-
-						fmt.Println("!!!!!!!!"+string(actual))
+						s := strings.Split(actual, ",")
+						//fmt.Println("!!!!!!!!"+string(content))
 						// fmt.Println("????????"+actual)
-
-						msg := PP2PLink_Ind_Message {
+						msg := PP2PLink_Ind_Message{
 							From:    conn.RemoteAddr().String(),
-							Message: string(actual),
-							Ip: "PP2PLink_Req_Message.Ip"}
+							Message: s[1],
+							IpCorreto: s[0]}
 
-						fmt.Println(msg)
 						module.Ind <- msg
-						//fmt.Println(msg)
+						// fmt.Println(msg)
 					}
 				}
 			}()
@@ -110,7 +84,6 @@ func (module PP2PLink) Start(address string) {
 	go func() {
 		for {
 			message := <-module.Req
-			fmt.Printf("asdddddddddddddddddddddddd")
 			module.Send(message)
 		}
 	}()
@@ -133,8 +106,8 @@ func (module PP2PLink) Send(message PP2PLink_Req_Message) {
 			return
 		}
 		module.Cache[message.To] = conn
-		
 	}
-	fmt.Printf("LOL" + message.Ip)
-	fmt.Fprintf(conn, message.Message, message.Ip)
+
+	fmt.Fprintf(conn, message.IpCorreto + "," +message.Message) // Escreve na conexão o ip recebido, mensagem recebida
+	
 }

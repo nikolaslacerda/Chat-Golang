@@ -1,43 +1,33 @@
-// Construido como parte da disciplina de Sistemas Distribuidos
-// Semestre 2018/2  -  PUCRS - Escola Politecnica
-// Estudantes:  Andre Antonitsch e Rafael Copstein
-// Professor: Fernando Dotti  (www.inf.pucrs.br/~fldotti)
-// Algoritmo baseado no livro:
-// Introduction to Reliable and Secure Distributed Programming
-// Christian Cachin, Rachid Gerraoui, Luis Rodrigues
-
 package BEB
 
-import (
-	"fmt"
-	)
+import "fmt"
 
 import PP2PLink "../Link"
 
-type BestEffortBroadcast_Req_Message struct {
+// Canal que envia mensagem aos usuarios do chat
+type Envia_Mensagem struct {
 	Addresses []string
+	IpCorreto string
 	Message   string
-	Ip    string
 }
 
-type BestEffortBroadcast_Ind_Message struct {
+// Canal que recebe a mensagem de algum usuario
+type Recebe_Mensagem struct {
 	From    string
 	Message string
-	Ip    string
+	IpCorreto string
 }
 
-
-type BestEffortBroadcast_Module struct {
-	Ind      chan BestEffortBroadcast_Ind_Message
-	Req      chan BestEffortBroadcast_Req_Message
-	NewUser  chan string
-	RefreshList chan string
+// Um controlador
+type Modulo struct {
+	Ind      chan Recebe_Mensagem
+	Req      chan Envia_Mensagem
 	Pp2plink PP2PLink.PP2PLink
 }
 
-func (module BestEffortBroadcast_Module) Init(address string) {
+// Inicia o controlador
+func (module Modulo) Init(address string) {
 
-	fmt.Println("Init BEB!")
 	module.Pp2plink = PP2PLink.PP2PLink{
 		Req: make(chan PP2PLink.PP2PLink_Req_Message),
 		Ind: make(chan PP2PLink.PP2PLink_Ind_Message)}
@@ -46,66 +36,55 @@ func (module BestEffortBroadcast_Module) Init(address string) {
 
 }
 
-func (module BestEffortBroadcast_Module) Start() {
+// Deixa o controlador rodando
+func (module Modulo) Start() {
 
 	go func() {
 		for {
 			select {
-			case y := <-module.Req:
-				module.Broadcast(y)
-			case y := <-module.Pp2plink.Ind:
-				module.Deliver(PP2PLink2BEB(y))
+			case y := <-module.Req: // Caso em que é solicitado ao controlador enviar uma mensagem, vem lá do chat
+				module.FazEnvioDaMensagem(y)
+			case y := <-module.Pp2plink.Ind: // Caso em que é solicitado ao controlador receber uma mensagem
+				module.fazRecebimentoDaMensagem(PP2PLink2BEB(y))
 			}
 		}
 	}()
 
 }
 
-func (module BestEffortBroadcast_Module) Broadcast(message BestEffortBroadcast_Req_Message) {
-
-	//Até aqui OK
-	fmt.Println(message)
+// Funcao responsavel por enviar uma mensagem
+func (module Modulo) FazEnvioDaMensagem(message Envia_Mensagem) { 
 
 	for i := 0; i < len(message.Addresses); i++ {
-		msg := BEB2PP2PLink(message)
+		msg := criaMensagem(message) // Cria uma mensagem do tipo PP2 para poder enviar pro PP2
 		msg.To = message.Addresses[i]
-		msg.Ip = message.Ip
-		//OK
-		module.Pp2plink.Req <- msg
-		fmt.Println("Sent to " + message.Addresses[i])
+		module.Pp2plink.Req <- msg //Envia a mensagem pro PP2 que é quem envia a mensagem de Fato
+		fmt.Println("Enviado para " + message.Addresses[i])
 	}
 
 }
 
-func (module BestEffortBroadcast_Module) Deliver(message BestEffortBroadcast_Ind_Message) {
+//Funcao responsavel por receber uma mensagem
+func (module Modulo) fazRecebimentoDaMensagem(message Recebe_Mensagem) {
 
-	fmt.Println("Received '" + message.Message + "' from " + message.From + "' Ip" + message.Ip)
 	module.Ind <- message
-	//fmt.Println("# End BEB Received")
-	if (message.Message == "Entrou no chat!"){
-		module.NewUser <- message.From
-	} else if message.Message == "Atualizem ai!" {
-		fmt.Println("Velho" + message.Ip)
-		fmt.Println("Velho" + message.From)
-		module.RefreshList <- message.Ip
-	}
-	
+
 }
 
-func BEB2PP2PLink(message BestEffortBroadcast_Req_Message) PP2PLink.PP2PLink_Req_Message {
+func criaMensagem(message Envia_Mensagem) PP2PLink.PP2PLink_Req_Message {
 
 	return PP2PLink.PP2PLink_Req_Message{
 		To:      message.Addresses[0],
-		Message: message.Message,
-		Ip: message.Ip}
+		IpCorreto:		 message.IpCorreto,
+		Message: message.Message}
 
 }
 
-func PP2PLink2BEB(message PP2PLink.PP2PLink_Ind_Message) BestEffortBroadcast_Ind_Message {
+func PP2PLink2BEB(message PP2PLink.PP2PLink_Ind_Message) Recebe_Mensagem {
 
-	return BestEffortBroadcast_Ind_Message{
+	return Recebe_Mensagem{
 		From:    message.From,
 		Message: message.Message,
-		Ip: message.Ip}
+		IpCorreto: message.IpCorreto}
 
 }

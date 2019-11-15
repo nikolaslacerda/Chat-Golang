@@ -11,7 +11,6 @@ import (
 type Channel struct {
 	EnviadoPor string
 	Mensagem   string
-	Ip string
 }
 
 var channels []Channel
@@ -25,19 +24,15 @@ func main() {
 	addresses := os.Args[1:]
 	fmt.Println("Enderecos:", addresses)
 
-	beb := BEB.BestEffortBroadcast_Module{
-		Req: make(chan BEB.BestEffortBroadcast_Req_Message),
-		Ind: make(chan BEB.BestEffortBroadcast_Ind_Message),
-		NewUser: make(chan string), 
-		RefreshList: make(chan string)}
+	beb := BEB.Modulo{
+		Req: make(chan BEB.Envia_Mensagem),
+		Ind: make(chan BEB.Recebe_Mensagem)}
 
 	beb.Init(addresses[0])
 
 	fmt.Println("-------------COMANDOS--------------")
 	fmt.Println("1)Enviar mensagem")
 	fmt.Println("2)Visualizar histórico de mensagens")
-	fmt.Println("3)Pedir para entrar em um chat")
-	fmt.Println("4)Mostrar participantes")
 	fmt.Println("-----------------------------------")
 
 	// enviador de broadcasts
@@ -45,9 +40,6 @@ func main() {
 
 		scanner := bufio.NewScanner(os.Stdin)
 		var msg string
-		var ip string
-		var ipp string
-		var ipL []string
 		var op string
 
 		for {
@@ -55,70 +47,30 @@ func main() {
 				op = scanner.Text()
 				switch op {
 				case "1":
-					fmt.Print("Enviar msg: ")
+					fmt.Print("Enviar mensagem: ")
 					if scanner.Scan() {
 						msg = scanner.Text()
-						ipp = "consegui!"
-						channels = append(channels, Channel{EnviadoPor: addresses[0], Mensagem: msg, Ip: ipp})
+						channels = append(channels, Channel{EnviadoPor: addresses[0], Mensagem: msg})
 					}
-					req := BEB.BestEffortBroadcast_Req_Message{
+					req := BEB.Envia_Mensagem{
 						Addresses: addresses[1:],
-						Message:   msg,
-						Ip: ipp}
+						IpCorreto: addresses[0],
+						Message:   msg}
 					beb.Req <- req
 				case "2":
 					fmt.Printf("%+v\n", channels)
-				case "3":
-					fmt.Printf("IP: ")
-					if scanner.Scan() {
-						ip = scanner.Text()
-						ipL = append(ipL, ip)
-						// msg = addresses[0] + " Gostaria de participar do chat"
-						msg = "Entrou no chat!"
-					}
-					req := BEB.BestEffortBroadcast_Req_Message{
-						Addresses: ipL,
-						Message:   msg,
-						Ip: "no"}
-					beb.Req <- req
-
-				case "4":
-					fmt.Println("Participantes:", addresses)
 				}
 			}
 
 		}
 	}()
 
-	// receptor de broadcasts
+	// Recebe mensagem
 	go func() {
 		for {
-			in := <-beb.Ind
-			fmt.Printf("Mensagem de %v: %v, %v\n", in.From, in.Message, in.Ip)
-			channels = append(channels, Channel{EnviadoPor: in.From, Mensagem: in.Message, Ip: in.Ip})
-		}
-	}()
-
-	go func() {
-		for {
-			newU := <-beb.NewUser
-			fmt.Println("NOVO:" + newU)
-			req := BEB.BestEffortBroadcast_Req_Message{
-				Addresses: addresses[1:],
-				Message:   "Atualizem ai!",
-				Ip: "fsdfsdfsdfsdf"}
-
-			beb.Req <- req
-
-			addresses = append(addresses, newU)
-
-		}
-	}()
-
-	go func() {
-		for {
-			newU := <-beb.RefreshList
-			addresses = append(addresses, newU)
+			mensagemRecebida := <-beb.Ind
+			fmt.Printf("Mensagem de %v: %v\n", mensagemRecebida.IpCorreto, mensagemRecebida.Message)
+			channels = append(channels, Channel{EnviadoPor: mensagemRecebida.IpCorreto, Mensagem: mensagemRecebida.Message})
 		}
 	}()
 
