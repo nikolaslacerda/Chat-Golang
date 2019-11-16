@@ -16,9 +16,39 @@ type PP2PLink_Ind_Message struct {
 	IpCorreto string
 }
 
+type PP2PLink_Recebe_Usuario struct {
+	From    string
+	IpCorreto string
+	Tag string
+}
+
+type PP2PLink_Novo_Usuario struct {
+	Adress    string
+	IpCorreto string
+	Tag string
+}
+
+type PP2PLink_Recebe_Grupo struct {
+	From string
+	Adresses    []string
+	Historico []string
+	IpCorreto string
+}
+
+type PP2PLink_Novo_Grupo struct {
+	To string
+	Addresses    []string
+	IpCorreto string
+	Historico []string
+}
+
 type PP2PLink struct {
 	Ind   chan PP2PLink_Ind_Message
 	Req   chan PP2PLink_Req_Message
+	NovoUsuario   chan PP2PLink_Novo_Usuario
+	RecebeUsuario   chan PP2PLink_Recebe_Usuario
+	NovoGrupo   chan PP2PLink_Novo_Grupo
+	RecebeGrupo   chan PP2PLink_Recebe_Grupo
 	Run   bool
 	Cache map[string]net.Conn
 }
@@ -66,15 +96,35 @@ func (module PP2PLink) Start(address string) {
 							continue
 						}
 						s := strings.Split(actual, ",")
-						//fmt.Println("!!!!!!!!"+string(content))
-						// fmt.Println("????????"+actual)
-						msg := PP2PLink_Ind_Message{
-							From:    conn.RemoteAddr().String(),
-							Message: s[1],
-							IpCorreto: s[0]}
 
-						module.Ind <- msg
-						// fmt.Println(msg)
+						//Verifica se é pra enviar mensagem ou se é pra enviar um novo usuário
+						
+						if (s[0] == "M"){
+							msg := PP2PLink_Ind_Message{
+							From:    conn.RemoteAddr().String(),
+							Message: s[2],
+							IpCorreto: s[1]}
+							module.Ind <- msg
+
+						}
+						if (s[0] == "U") {
+							msg1 := PP2PLink_Recebe_Usuario{
+							From:    conn.RemoteAddr().String(),
+							IpCorreto: s[1],
+							Tag: s[3]}
+							module.RecebeUsuario <- msg1
+						}
+						if (s[0] == "G") {
+							u := strings.Split(s[1], "/")
+							h := strings.Split(s[2], "/")
+				
+							msg2 := PP2PLink_Recebe_Grupo{
+							From:    conn.RemoteAddr().String(),
+							Adresses:    u,
+							IpCorreto: "!",
+							Historico: h}
+							module.RecebeGrupo <- msg2
+						}
 					}
 				}
 			}()
@@ -88,6 +138,20 @@ func (module PP2PLink) Start(address string) {
 		}
 	}()
 
+	go func() {
+		for {
+			message := <-module.NovoUsuario
+			module.SendUser(message)
+		}
+	}()
+
+	go func() {
+		for {
+			message := <-module.NovoGrupo
+			module.SendGrupo(message)
+		}
+	}()
+
 }
 
 func (module PP2PLink) Send(message PP2PLink_Req_Message) {
@@ -95,6 +159,7 @@ func (module PP2PLink) Send(message PP2PLink_Req_Message) {
 	var conn net.Conn
 	var ok bool
 	var err error
+	
 
 	// ja existe uma conexao aberta para aquele destinatario?
 	if conn, ok = module.Cache[message.To]; ok {
@@ -108,6 +173,59 @@ func (module PP2PLink) Send(message PP2PLink_Req_Message) {
 		module.Cache[message.To] = conn
 	}
 
-	fmt.Fprintf(conn, message.IpCorreto + "," +message.Message) // Escreve na conexão o ip recebido, mensagem recebida
+	fmt.Fprintf(conn, "M," + message.IpCorreto + "," +message.Message) // Escreve na conexão o ip recebido, mensagem 
+	
+	
+}
+
+func (module PP2PLink) SendUser(message PP2PLink_Novo_Usuario) {
+
+	var conn net.Conn
+	var ok bool
+	var err error
+
+
+	if conn, ok = module.Cache[message.Adress]; ok {
+	} else {
+		conn, err = net.Dial("tcp", message.Adress)
+		if err != nil {
+			return
+		}
+		module.Cache[message.Adress] = conn
+	}
+
+	fmt.Fprintf(conn, "U," + message.IpCorreto + "," + message.Adress + "," + message.Tag) // Escreve na conexão o ip recebido, mensagem recebida
+	
+}
+func (module PP2PLink) SendGrupo(message PP2PLink_Novo_Grupo) {
+
+	var conn net.Conn
+	var ok bool
+	var err error
+
+
+	if conn, ok = module.Cache[message.IpCorreto]; ok {
+	} else {
+		conn, err = net.Dial("tcp", message.IpCorreto)
+		if err != nil {
+			return
+		}
+		module.Cache[message.IpCorreto] = conn
+	}
+
+	var ad string
+	var ad2 string
+
+	for i := 0; i < len(message.Addresses); i++ {
+		ad += message.Addresses[i] + "/"
+	}
+	ad = ad[:len(ad)-1]
+
+	for i := 0; i < len(message.Historico); i++ {
+		ad2 += message.Historico[i] + "/"
+	}
+	ad2 = ad2[:len(ad2)-1]
+
+	fmt.Fprintf(conn, "G," + ad + "," + ad2) // Escreve na conexão o ip recebido, mensagem recebida
 	
 }
