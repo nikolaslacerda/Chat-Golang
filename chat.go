@@ -8,7 +8,7 @@ import (
 	BEB "./BEB"
 )
 
-var channels []string // Historico do chat
+var historico []string // Historico do chat
 
 func main() {
 	if len(os.Args) < 2 {
@@ -20,12 +20,12 @@ func main() {
 	fmt.Println("Enderecos:", addresses)
 
 	beb := BEB.Modulo{
-		Req:           make(chan BEB.Envia_Mensagem),
-		Ind:           make(chan BEB.Recebe_Mensagem),
-		NovoUsuario:   make(chan BEB.Envia_Novo_Usuario), //Canal que envia um novo usuario
-		RecebeUsuario: make(chan BEB.Recebe_Usuario),     // Canal que recebe um novo usuario
-		NovoGrupo:     make(chan BEB.Envia_Novo_Grupo),   // Canal que recebe dados de um grupo (usuarios e historico)
-		RecebeGrupo:   make(chan BEB.Recebe_Grupo)}       // Canal que recebe dados de um grupo (usuarios e historico)
+		EnviaMensagem:  make(chan BEB.Envia_Mensagem),		// Canal que envia mensagem
+		RecebeMensagem: make(chan BEB.Recebe_Mensagem),		// Canal que recebe mensagem
+		NovoUsuario:    make(chan BEB.Envia_Novo_Usuario),	// Canal que envia um novo usuario
+		RecebeUsuario:  make(chan BEB.Recebe_Usuario),		// Canal que recebe um novo usuario
+		NovoGrupo:      make(chan BEB.Envia_Novo_Grupo),	// Canal que recebe dados de um grupo (usuarios e historico)
+		RecebeGrupo:    make(chan BEB.Recebe_Grupo)}		// Canal que recebe dados de um grupo (usuarios e historico)
 
 	beb.Init(addresses[0])
 
@@ -36,7 +36,7 @@ func main() {
 	fmt.Println("4) Visualizar membros do chat")
 	fmt.Println("------------------------------------")
 
-	// enviador de broadcasts
+	// Enviador de broadcasts
 	go func() {
 
 		scanner := bufio.NewScanner(os.Stdin)
@@ -52,16 +52,16 @@ func main() {
 					fmt.Print("Enviar mensagem: ")
 					if scanner.Scan() {
 						msg = scanner.Text()
-						channels = append(channels, addresses[0]+":"+msg)
+						historico = append(historico, addresses[0] + ":" + msg)
 					}
 					req := BEB.Envia_Mensagem{
 						Addresses: addresses[1:],
 						IpCorreto: addresses[0],
 						Message:   msg}
-					beb.Req <- req
+					beb.EnviaMensagem <- req
 				case "2":
 					fmt.Println("----HISTORICO----")
-					for _, i := range channels {
+					for _, i := range historico {
 						fmt.Println(i)
 					}
 					fmt.Println("-----------------")
@@ -90,9 +90,9 @@ func main() {
 	// Rotina responsavel por receber novas mensagens
 	go func() {
 		for {
-			mensagemRecebida := <-beb.Ind
+			mensagemRecebida := <-beb.RecebeMensagem
 			fmt.Printf("Mensagem de %v: %v\n", mensagemRecebida.IpCorreto, mensagemRecebida.Message)
-			channels = append(channels, mensagemRecebida.IpCorreto+":"+mensagemRecebida.Message)
+			historico = append(historico, mensagemRecebida.IpCorreto + ":" + mensagemRecebida.Message)
 		}
 	}()
 
@@ -101,7 +101,7 @@ func main() {
 		for {
 			grupoRecebido := <-beb.RecebeGrupo
 			addresses = append(addresses, grupoRecebido.Addresses...)
-			channels = append(channels, grupoRecebido.Historico...)
+			historico = append(historico, grupoRecebido.Historico...)
 
 		}
 	}()
@@ -110,7 +110,6 @@ func main() {
 	go func() {
 		for {
 			usuarioRecebido := <-beb.RecebeUsuario
-			//fmt.Printf("Usuario recebido de %v: %v\n", usuarioRecebido.From, usuarioRecebido.IpCorreto)
 
 			// Tag responsavel por indicar se o usuario deve espalhar o novo usuario
 			// 1 - Usuario novo solicita para um usuario do chat que quer entrar no chat
@@ -133,7 +132,7 @@ func main() {
 				req := BEB.Envia_Novo_Grupo{
 					Addresses: addresses,
 					IpCorreto: usuarioRecebido.IpCorreto,
-					Historico: channels}
+					Historico: historico}
 				beb.NovoGrupo <- req
 
 			}

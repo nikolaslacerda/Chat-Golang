@@ -53,7 +53,6 @@ type PP2PLink struct {
 	Cache map[string]net.Conn
 }
 
-// Inicia
 func (module PP2PLink) Init(address string) {
 	if module.Run { return 
 	}
@@ -68,7 +67,6 @@ func (module PP2PLink) Start(address string) {
 		for {
 			// aceita repetidamente tentativas novas de conexao
 			conn, err := listen.Accept()
-			// fmt.Println(err)
 			if err != nil {
 				continue
 			}
@@ -97,9 +95,9 @@ func (module PP2PLink) Start(address string) {
 						}
 						s := strings.Split(actual, ",")
 
-						//Verifica se é pra enviar mensagem ou se é pra enviar um novo usuário
+						//Verifica se é pra enviar mensagem ou se e pra enviar um novo usuario ou grupo
 						
-						if (s[0] == "M"){
+						if (s[0] == "M"){ // Envia nova mensagem
 							msg := PP2PLink_Ind_Message{
 							From:    conn.RemoteAddr().String(),
 							Message: s[2],
@@ -107,14 +105,14 @@ func (module PP2PLink) Start(address string) {
 							module.Ind <- msg
 
 						}
-						if (s[0] == "U") {
+						if (s[0] == "U") { // Novo usuario
 							msg1 := PP2PLink_Recebe_Usuario{
 							From:    conn.RemoteAddr().String(),
 							IpCorreto: s[1],
 							Tag: s[3]}
 							module.RecebeUsuario <- msg1
 						}
-						if (s[0] == "G") {
+						if (s[0] == "G") { // Novo grupo
 							u := strings.Split(s[1], "/")
 							h := strings.Split(s[2], "/")
 				
@@ -131,28 +129,33 @@ func (module PP2PLink) Start(address string) {
 		}
 	}()
 
+	// Rotina que envia mensagem
 	go func() {
 		for {
-			message := <-module.Req
-			module.Send(message)
+			mensagem := <-module.Req
+			module.Send(mensagem)
 		}
 	}()
 
+	// Rotina que envia usuario
 	go func() {
 		for {
-			message := <-module.NovoUsuario
-			module.SendUser(message)
+			usuario := <-module.NovoUsuario
+			module.SendUser(usuario)
 		}
 	}()
 
+	// Rotina que envia dados de um chat
 	go func() {
 		for {
-			message := <-module.NovoGrupo
-			module.SendGrupo(message)
+			grupo := <-module.NovoGrupo
+			module.SendGrupo(grupo)
 		}
 	}()
 
 }
+
+// Nas funcoes Send todos os dados sao passados por strings
 
 func (module PP2PLink) Send(message PP2PLink_Req_Message) {
 
@@ -173,7 +176,7 @@ func (module PP2PLink) Send(message PP2PLink_Req_Message) {
 		module.Cache[message.To] = conn
 	}
 
-	fmt.Fprintf(conn, "M," + message.IpCorreto + "," +message.Message) // Escreve na conexão o ip recebido, mensagem 
+	fmt.Fprintf(conn, "M," + message.IpCorreto + "," +message.Message) // Escreve na conexão do ip a mensagem 
 	
 	
 }
@@ -194,7 +197,7 @@ func (module PP2PLink) SendUser(message PP2PLink_Novo_Usuario) {
 		module.Cache[message.Adress] = conn
 	}
 
-	fmt.Fprintf(conn, "U," + message.IpCorreto + "," + message.Adress + "," + message.Tag) // Escreve na conexão o ip recebido, mensagem recebida
+	fmt.Fprintf(conn, "U," + message.IpCorreto + "," + message.Adress + "," + message.Tag) // Escreve na conexão do ip o usuario
 	
 }
 func (module PP2PLink) SendGrupo(message PP2PLink_Novo_Grupo) {
@@ -226,6 +229,6 @@ func (module PP2PLink) SendGrupo(message PP2PLink_Novo_Grupo) {
 	}
 	ad2 = ad2[:len(ad2)-1]
 
-	fmt.Fprintf(conn, "G," + ad + "," + ad2) // Escreve na conexão o ip recebido, mensagem recebida
+	fmt.Fprintf(conn, "G," + ad + "," + ad2) // Escreve na conexão do ip o grupo
 	
 }
